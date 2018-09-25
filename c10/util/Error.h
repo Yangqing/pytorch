@@ -1,7 +1,8 @@
-#pragma once
+/* Main definition for c10::Error that is the common exception for C10
+ * dependent libraries.
+ */
 
-#include <ATen/core/Macros.h>
-#include <ATen/core/optional.h>
+#pragma once
 
 #include <cstddef>
 #include <exception>
@@ -10,68 +11,28 @@
 #include <string>
 #include <vector>
 
+#include "c10/util/StringUtil.h"
+#include "c10/macros/Macros.h"
+
+// Aliasing for Windows compilers.
 #if defined(_MSC_VER) && _MSC_VER <= 1900
 #define __func__ __FUNCTION__
 #endif
 
-namespace at {
+namespace c10 {
 
-namespace detail {
+// A utility function to return an exception std::string by prepending its
+// exception type before its what() content
+C10_API std::string GetExceptionString(const std::exception& e);
 
-// Obtains the base name from a full path.
-CAFFE2_API std::string StripBasename(const std::string& full_path);
-
-inline std::ostream& _str(std::ostream& ss) {
-  return ss;
-}
-
-template <typename T>
-inline std::ostream& _str(std::ostream& ss, const T& t) {
-  ss << t;
-  return ss;
-}
-
-template <typename T, typename... Args>
-inline std::ostream& _str(std::ostream& ss, const T& t, const Args&... args) {
-  return _str(_str(ss, t), args...);
-}
-
-} // namespace detail
-
-// Convert a list of string-like arguments into a single string.
-template <typename... Args>
-inline std::string str(const Args&... args) {
-  std::ostringstream ss;
-  detail::_str(ss, args...);
-  return ss.str();
-}
-
-// Specializations for already-a-string types.
-template <>
-inline std::string str(const std::string& str) {
-  return str;
-}
-inline std::string str(const char* c_str) {
-  return c_str;
-}
-
-/// Represents a location in source code (for debugging).
-struct CAFFE2_API SourceLocation {
-  const char* function;
-  const char* file;
-  uint32_t line;
-};
-
-std::ostream& operator<<(std::ostream& out, const SourceLocation& loc);
-
-/// The primary ATen error class.
+/// The primary C10 error class.
 /// Provides a complete error message with source location information via
 /// `what()`, and a more concise message via `what_without_backtrace()`. Should
 /// primarily be used with the `AT_ERROR` macro.
 ///
 /// NB: at::Error is handled specially by the default torch to suppress the
 /// backtrace, see torch/csrc/Exceptions.h
-class CAFFE2_API Error : public std::exception {
+class C10_API Error : public std::exception {
   std::vector<std::string> msg_stack_;
   std::string backtrace_;
 
@@ -128,7 +89,7 @@ class CAFFE2_API Error : public std::exception {
   }
 };
 
-class CAFFE2_API Warning {
+class C10_API Warning {
   using handler_t =
       void (*)(const SourceLocation& source_location, const char* msg);
 
@@ -150,11 +111,7 @@ class CAFFE2_API Warning {
   static handler_t warning_handler_;
 };
 
-// A utility function to return an exception std::string by prepending its
-// exception type before its what() content
-CAFFE2_API std::string GetExceptionString(const std::exception& e);
-
-} // namespace at
+} // namespace c10
 
 // TODO: variants that print the expression tested and thus don't require
 // strings

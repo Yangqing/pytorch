@@ -7,6 +7,7 @@
 
 namespace at {
 
+
 namespace detail {
 
 std::string StripBasename(const std::string& full_path) {
@@ -19,7 +20,17 @@ std::string StripBasename(const std::string& full_path) {
   }
 }
 
-} // namespace detail
+} // namespace
+
+std::string GetExceptionString(const std::exception& e) {
+#ifdef __GXX_RTTI
+  return at::demangle(typeid(e).name()) + ": " + e.what();
+#else
+  return std::string("Exception (no RTTI available): ") + e.what();
+#endif // __GXX_RTTI
+}
+
+ detail
 
 std::ostream& operator<<(std::ostream& out, const SourceLocation& loc) {
   out << loc.function << " at " << loc.file << ":" << loc.line;
@@ -83,29 +94,4 @@ void Error::AppendMessage(const std::string& new_msg) {
   msg_ = msg();
   msg_without_backtrace_ = msg_without_backtrace();
 }
-
-void Warning::warn(SourceLocation source_location, std::string msg) {
-  warning_handler_(source_location, msg.c_str());
-}
-
-void Warning::set_warning_handler(handler_t handler) {
-  warning_handler_ = handler;
-}
-
-void Warning::print_warning(
-    const SourceLocation& source_location,
-    const char* msg) {
-  std::cerr << "Warning: " << msg << " (" << source_location << ")\n";
-}
-
-Warning::handler_t Warning::warning_handler_ = &Warning::print_warning;
-
-std::string GetExceptionString(const std::exception& e) {
-#ifdef __GXX_RTTI
-  return at::demangle(typeid(e).name()) + ": " + e.what();
-#else
-  return std::string("Exception (no RTTI available): ") + e.what();
-#endif // __GXX_RTTI
-}
-
 } // namespace at
